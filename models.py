@@ -1,7 +1,7 @@
-
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime
+
 # from uuid import UUID
 from enum import Enum
 
@@ -28,12 +28,13 @@ class ProjectCreate(BaseModel):
     mobile_users_info: List[UserInfo] = Field(default_factory=list)
     customer_id: int
     prj_name: str
-    prj_date: Optional[str] = None  
+    prj_date: Optional[str] = None
     prj_id: str
     created_by: int
     prj_addr: Optional[str] = None
     prj_loc_state: Optional[str] = None
     prj_state: ProjectState
+
 
 class ProjectUpdate(BaseModel):
     web_users: Optional[List[int]] = None
@@ -50,11 +51,6 @@ class ProjectUpdate(BaseModel):
     prj_addr: Optional[str] = None
     prj_loc_state: Optional[str] = None
     prj_state: Optional[ProjectState] = None
-
-
-
-
-
 
 
 # b.	Payload:
