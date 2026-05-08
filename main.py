@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import asyncio
 
 from fastapi import FastAPI, HTTPException
 from models import ProjectCreate, ProjectUpdate
@@ -6,28 +7,28 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from datetime import datetime
 from bson import ObjectId
 from caching import get_cache, set_cache, init_redis
+from schedule import init_scheduler, worker_loop
 
-
-app = FastAPI()
 
 client = AsyncIOMotorClient("mongodb://localhost:27017")
 db = client["dcforms"]
 
 
-@app.on_event("startup")
-async def create_indexes():
-    init_redis()
-    await db.projects.create_index(
-        [("prj_name")],
-        unique=False
-    )
-
 @asynccontextmanager
 async def lifespan(app):
     await init_redis()
+    await init_scheduler()
+    await db.projects.create_index([("prj_name")], unique=False)
+    yield
+
     
-    yield                   
-    
+
+
+app = FastAPI(lifespan=lifespan)
+
+
+
+
 
 # question 1
 
@@ -176,7 +177,6 @@ async def get_list_of_forms():
     if cache:
         return {"source": "cache", "data": cache}
 
-
     pipeline = [
         {
             "$lookup": {
@@ -245,4 +245,4 @@ async def get_list_of_forms():
     cursor = db.formdata.aggregate(pipeline)
     result = await cursor.to_list(length=100)
     await set_cache(key, result, 300)
-    return  {"source": "db", "data": result}
+    return {"source": "db", "data": result}
