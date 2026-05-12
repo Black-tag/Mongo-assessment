@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 import asyncio
 
+
 from fastapi import FastAPI, HTTPException
 from models import ProjectCreate, ProjectUpdate
 from motor.motor_asyncio import AsyncIOMotorClient
