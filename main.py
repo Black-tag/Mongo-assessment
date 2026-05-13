@@ -264,15 +264,101 @@ async def delete_all_user_data(phone_number: str):
     print(f"Found user: {user_id_str}")
 
     results = await asyncio.gather(  # type: ignore
-        db.draftposts.delete_many({"authorUserId": user_object_id}),
+        # db.draftposts.delete_many({"authorUserId": user_object_id}),
+        # db.files.delete_many({"ownerUser": user_object_id}),
+        # db.links.delete_many({"createdByUserId": user_object_id}),
+        # db.notifications.delete_many({"userId": user_object_id}),
+        # db.fcmTokens.delete_many({"user": user_object_id}),
+        # db.apiKeys.delete_many({"userId": user_object_id}),
+        # db.actionLogRecords.delete_many({"user": user_object_id}),
+        # db.invite.delete_many({"createdBy": user_object_id}),
+        # db.ratingChanges.delete_many({"user": user_object_id}),
+        # db.ratingLog.delete_many({"userId": user_object_id}),
+        # db.event.delete_many({"userId": user_id_str}),
+        # db.channels.delete_many({"ownerId": user_id_str}),
+        # db.posts.delete_many({"authorUser": user_id_str}),
+        # db.organisations.delete_many({"ownerId": user_id_str}),
+        # db.draftPostsDeleted.delete_many({"authorUserId": user_object_id}),
+        # db.measured.delete_many({"userId": user_id_str}),
+        # db.postsQuarantined.delete_many({"authorUser": user_object_id}),
+        # db.relationships.delete_many({"sourceId": user_id_str}),
+
+
+        #  1. Handle relationships (both directions)
+        db.relationships.delete_many({"sourceId": user_id_str}),
+        db.relationships.delete_many({"targetId": user_id_str}),
+        db.relationships.delete_many({"invitedByUserId": user_object_id}),
+
+        #  2. Remove from user arrays in other users
+        db.users.update_many({}, {$pull: {blockedUsersIds: user_object_id}}),
+        db.users.update_many({}, {$pull: {following: user_object_id}}),
+        db.users.update_many({}, {$pull: {negativeFollowing: user_object_id}}),
+
+        #  3. Handle posts (complex - arrays + deletions)
+        db.posts.update_many({}, {$pull: {likedByUsers: user_object_id}}),
+        db.posts.update_many({}, {$pull: {dislikedByUsers: user_object_id}}),
+        db.posts.update_many({}, {$pull: {blockedUsersIds: user_object_id}}),
+        db.posts.update_many({}, {$pull: {markedBotByUsers: user_object_id}}),
+        db.posts.update_many({}, {$pull: {repostedByUsers: user_id_str}}),
+        db.posts.update_many({}, {$pull: {"mentions": {userId: user_object_id}}}),
+        db.posts.update_many({}, {$pull: {"reactionSets": {userId: user_id_str}}}),
+        db.posts.delete_many({"authorUser": user_id_str}),
+
+        #  4. Organizations
+        db.organisations.update_many({}, {$pull: {"members": {sourceId: user_id_str}}}),
+        db.organisations.update_many({}, {$pull: {"invitedMembers": {sourceId: user_id_str}}}),
+        db.organisations.update_many({}, {$pull: {"joinRequests": {sourceId: user_id_str}}}),
+        db.organisations.update_many({}, {$pull: {"bannedUserIds": {sourceId: user_id_str}}}),
+        db.organisations.update_many({}, {$pull: {"bannedUserIds": {targetId: user_id_str}}}),
+        db.organisations.delete_many({"ownerId": user_id_str}),
+
+        #  5. Channels
+        db.channels.update_many({}, {$pull: {"members": {sourceId: user_id_str}}}),
+        db.channels.delete_many({"ownerId": user_id_str}),
+
+        #  6. Files
         db.files.delete_many({"ownerUser": user_object_id}),
+
+        #  7. Links (all user references)
         db.links.delete_many({"createdByUserId": user_object_id}),
+        db.links.delete_many({"userId": user_object_id}),
+        db.links.delete_many({"postAuthorUserId": user_object_id}),
+
+        #  8. Draft posts
+        db.draftPosts.delete_many({"authorUserId": user_object_id}),
+
+        #  9. Notifications (all user fields)
         db.notifications.delete_many({"userId": user_object_id}),
+        db.notifications.delete_many({"reasonUserId": user_object_id}),
+        db.notifications.delete_many({"invitedByUserId": user_object_id}),
+
+        #  10. FCM Tokens
         db.fcmTokens.delete_many({"user": user_object_id}),
+
+        #  11. API Keys
         db.apiKeys.delete_many({"userId": user_object_id}),
+        db.apiKeys.delete_many({"createdByUserId": user_object_id}),
+
+        #  12. Action Log Records
         db.actionLogRecords.delete_many({"user": user_object_id}),
-        db.invite.delete_many({"createdBy": user_object_id}),
+
+        #  13. Invitations
+        db.invitations.delete_many({"createdByUser": user_object_id}),
+        db.invitations.delete_many({"user": user_object_id}),
+
+        #  14. Rating Changes (both fields)
+        db.ratingChanges.delete_many({"user": user_object_id}),
+        db.ratingChanges.delete_many({"reasonUser": user_object_id}),
+
+        #  15. Rating Log
         db.ratingLog.delete_many({"userId": user_object_id}),
+
+        #  16. Events (metrics)
+        db.event.delete_many({"userId": user_id_str}),
+
+        #  17. Finally delete the user
+        db.users.delete_one({"_id": user_object_id}),
+
         return_exceptions=True,
     )
 
@@ -285,7 +371,15 @@ async def delete_all_user_data(phone_number: str):
         "apiKeys",
         "actionLogRecords",
         "invite",
+        "ratingChanges",
         "ratingLog",
+        "events",
+        "posts",
+        "organisations",
+        "draftPostsDeleted",
+        "measured",
+        "PostsQuarantined",
+        "relationships",
     ]
 
     failures = [col for col, r in zip(collections, results) if isinstance(r, Exception)]
