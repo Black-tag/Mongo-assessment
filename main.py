@@ -1,12 +1,14 @@
 from contextlib import asynccontextmanager
 import asyncio
+from fastapi.templating import Jinja2Templates
 
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from models import ProjectCreate, ProjectUpdate
 from motor.motor_asyncio import AsyncIOMotorClient
 from datetime import datetime
 from bson import ObjectId
+
 # from caching import get_cache, set_cache, init_redis
 from schedule import init_scheduler
 # from schedule import worker_loop
@@ -246,6 +248,29 @@ app = FastAPI(lifespan=lifespan)
 #     await set_cache(key, result, 300)
 #     return {"source": "db", "data": result}
 
+templates = Jinja2Templates(directory="templates")
+
+
+templates = Jinja2Templates(directory="templates")
+
+
+@app.get("/preview-email")
+async def preview_email(request: Request):
+    return templates.TemplateResponse(
+    request=request,
+    name="welcome_email.html",
+    context={
+        "username": "Anand",
+        "verification_link": "https://localhost:3000",
+        "is_verified": True,
+        "skills": ["fastApi", "Redis", "Python"],
+        "user_details": {
+            "name": "Anand",
+            "age": "24",
+        },
+    }
+)
+
 
 @app.delete("/users/{phone_number}")
 async def delete_all_user_data(phone_number: str):
@@ -255,7 +280,9 @@ async def delete_all_user_data(phone_number: str):
     user = await db.users.find_one({"phone": decoded_phone})
 
     if not user:
-        raise HTTPException(status_code=404, detail=f"User not found for phone: {decoded_phone}")
+        raise HTTPException(
+            status_code=404, detail=f"User not found for phone: {decoded_phone}"
+        )
 
     user_object_id = user["_id"]
     user_id_str = str(user["_id"])
@@ -264,80 +291,56 @@ async def delete_all_user_data(phone_number: str):
 
     owned_orgs = await db.relationships.find(
         {
-            "sourceId": user_id_str, 
-            "sourceType": "users", 
-            "targetType": "organizations", 
-            "role": "owner"
-        }).to_list(length=None)
-    
+            "sourceId": user_id_str,
+            "sourceType": "users",
+            "targetType": "organizations",
+            "role": "owner",
+        }
+    ).to_list(length=None)
+
     # print(f"Type: {type(owned_orgs)}")
-    
+
     org_ids = [org["targetId"] for org in owned_orgs]
     # print(f"organization_ids: {org_ids}")
-    
-
-    
-
-
-
 
     results = await asyncio.gather(  # type: ignore
-        
-        
-        
         db.relationships.delete_many({"sourceId": user_id_str}),
-        db.relationships.delete_many({"targetId": {"$in": org_ids }}),
-        
-        
-        db.users.update_many({"blockedUsersIds": user_object_id}, {"$pull": {"blockedUsersIds": user_object_id}}),
-        db.users.update_many({"following": user_object_id}, {"$pull": {"following": user_object_id}}),
-        db.users.update_many({"negativeFollowing": user_object_id}, {"$pull": {"negativeFollowing": user_object_id}}),
-
-        # Posts need to delete user mentions in other peoples posts too 
-        db.posts.update_many({"reactionSets.userId": user_id_str}, {"$pull": {"reactionSets": {"userId": user_id_str}}}),
+        db.relationships.delete_many({"targetId": {"$in": org_ids}}),
+        db.users.update_many(
+            {"blockedUsersIds": user_object_id},
+            {"$pull": {"blockedUsersIds": user_object_id}},
+        ),
+        db.users.update_many(
+            {"following": user_object_id}, {"$pull": {"following": user_object_id}}
+        ),
+        db.users.update_many(
+            {"negativeFollowing": user_object_id},
+            {"$pull": {"negativeFollowing": user_object_id}},
+        ),
+        # Posts need to delete user mentions in other peoples posts too
+        db.posts.update_many(
+            {"reactionSets.userId": user_id_str},
+            {"$pull": {"reactionSets": {"userId": user_id_str}}},
+        ),
         db.posts.delete_many({"authorUser": user_id_str}),
-
-
-        
         db.files.delete_many({"ownerUser": user_object_id}),
-
-        
         db.links.delete_many({"createdByUserId": user_object_id}),
         db.links.delete_many({"postAuthorUserId": user_object_id}),
-
-        
         db.draftPosts.delete_many({"authorUserId": user_object_id}),
-
-        
         db.notifications.delete_many({"userId": user_object_id}),
         db.notifications.delete_many({"reasonUserId": user_object_id}),
         # db.notifications.delete_many({"invitedByUserId": user_object_id}),
-
-    
         db.fcmTokens.delete_many({"user": user_object_id}),
-
-        
         db.apiKeys.delete_many({"userId": user_object_id}),
         db.apiKeys.delete_many({"createdByUserId": user_object_id}),
-
         db.channels.delete_many({"_id": user["username"], "ownerType": "user"}),
         db.organizations.delete_many({"_id": {"$in": org_ids}}),
-
-        
         db.actionLogRecords.delete_many({"user": user_object_id}),
-
-        
         db.invitations.delete_many({"createdByUser": user_object_id}),
         db.invitations.delete_many({"user": user_object_id}),
-
-        
         db.ratingChanges.delete_many({"user": user_object_id}),
         db.ratingChanges.delete_many({"reasonUser": user_object_id}),
-
-    
         db.ratingLog.delete_many({"userId": user_object_id}),
-
-    
         db.event.delete_many({"userId": user_id_str}),
         return_exceptions=True,
     )
@@ -372,12 +375,16 @@ async def delete_all_user_data(phone_number: str):
 
     report = {
         col: (r.deleted_count if hasattr(r, "deleted_count") else r.modified_count)
-             if not isinstance(r, Exception)
-             else f"FAILED: {r}"
+        if not isinstance(r, Exception)
+        else f"FAILED: {r}"
         for col, r in zip(collections, results)
     }
 
-    failures = {col: res for col, res in report.items() if isinstance(res, str) and res.startswith("FAILED")}
+    failures = {
+        col: res
+        for col, res in report.items()
+        if isinstance(res, str) and res.startswith("FAILED")
+    }
 
     if failures:
         raise HTTPException(

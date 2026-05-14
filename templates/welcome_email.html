@@ -1,121 +1,32 @@
-```html
 <!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #0f172a;
-            font-family: Arial, Helvetica, sans-serif;
-        }
-
-        .wrapper {
-            width: 100%;
-            padding: 40px 20px;
-            background: linear-gradient(135deg, #0f172a, #1e293b);
-        }
-
-        .container {
-            max-width: 700px;
-            margin: auto;
-            background: rgba(255, 255, 255, 0.08);
-            border-radius: 16px;
-            padding: 50px;
-            color: white;
-
-            /* Glass effect */
-            backdrop-filter: blur(10px);
-
-            /* Shadow */
-            box-shadow: 0px 8px 30px rgba(0, 0, 0, 0.4);
-        }
-
-        h1 {
-            font-size: 36px;
-            margin-bottom: 20px;
-            color: #ffffff;
-        }
-
-        p {
-            font-size: 18px;
-            line-height: 1.7;
-            color: #e2e8f0;
-        }
-
-        .button {
-            display: inline-block;
-            margin-top: 30px;
-            padding: 14px 28px;
-            background-color: #2563eb;
-            color: white !important;
-            text-decoration: none;
-            border-radius: 10px;
-            font-weight: bold;
-        }
-
-        .footer {
-            margin-top: 40px;
-            font-size: 14px;
-            color: #94a3b8;
-        }
-
-        @media only screen and (max-width: 600px) {
-            .container {
-                padding: 30px 20px;
-            }
-
-            h1 {
-                font-size: 28px;
-            }
-
-            p {
-                font-size: 16px;
-            }
-        }
-    </style>
-</head>
+<html>
 
 <body>
 
-    <div class="wrapper">
+<h1>Hi I am learning Jinja2 Templating</h1>
 
-        <div class="container">
+<h2>This is for Doug Jones email templates</h2>
 
-            <h1>
-                WELCOME TO DOUG JONES COMMUNITY !
-            </h1>
+{% if is_verified %}
+    <p>Verified user</p>
+{% else %}
+    <p>Not verified</p>
+{% endif %}
 
-            <p>
-                Hi {{ username }},
-            </p>
+<ul>
+    {% for skill in skills %}
+        <li>{{ skill }}</li>
+    {% endfor %}
+</ul>
 
-            <p>
-                We’re excited to welcome you to the Doug Jones Community — a dynamic network of professionals, innovators, and leaders for growth and community collaboration.
-            </p>
+{% set company = "DIGICOLLECT" %}
 
-            <p>
-                Click below to verify your account:
-            </p>
+<p>{{ company }}</p>
 
-            <a href="{{ verification_link }}" class="button">
-                Verify Account
-            </a>
+<p>{{ user_details.name | upper }}</p>
 
-            <div class="footer">
-                This email was sent from
-                <i>anand.a@digicollect.com</i>
-            </div>
-
-        </div>
-
-    </div>
+<p>{{ user_details.age | lower }}</p>
 
 </body>
 
 </html>
-```

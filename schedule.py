@@ -1,4 +1,5 @@
 import asyncio
+
 # from caching import get_client
 from datetime import datetime, date, time
 from zoneinfo import ZoneInfo
@@ -23,7 +24,14 @@ async def init_scheduler():
     #     hour=SCHEDULE_HOUR, minute=SCHEDULE_MINUTE, second=0, microsecond=0
     # )
     # asyncio.create_task(worker_loop())
+    template_path = conf.TEMPLATE_FOLDER / "welcome_email.html"
+
+    print("======== TEMPLATE CONTENT ========")
+    print(template_path.read_text())
+    print("==================================")
     recipient = "unnianandunni007@gmail.com"
+    print(conf.TEMPLATE_FOLDER)
+    print((conf.TEMPLATE_FOLDER / "welcome_email.html").exists())
     await send_email(recipient)
     # await schedule_email("unnianandunni007@gmail.com", run_at)
     # print(f"Email scheduled for {run_at} (timestamp: {run_at.timestamp()})")
@@ -46,17 +54,20 @@ async def send_email(email):
     message = MessageSchema(
         subject="UPDATE ON THE TASK: REDIS ASSIGNMENT",
         recipients=[email],
-        template_body= {
+        template_body={
             "username": "Anand",
-            "verification_link": "https://localhost:3000"
-        }, 
+            "verification_link": "https://localhost:3000",
+            "is_verified": True,
+            "skills": ["fastApi", "Redis", "Python"],
+            "user_details": {
+                "name": "Anand",
+                "age": "24",
+            },
+        },
         subtype=MessageType.html,
     )
     fm = FastMail(conf)
-    await fm.send_message(
-        message,
-        template_name = "welcome_email.html"
-        )
+    await fm.send_message(message, template_name="welcome_email.html")
     print(f"✓ Email sent to {email}")
 
 
@@ -88,5 +99,3 @@ async def send_email(email):
 #     client = await get_client()
 #     timestamp = run_at.timestamp()
 #     await client.zadd("email_queue", {email: timestamp})
-
-
