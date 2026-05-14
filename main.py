@@ -8,7 +8,8 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from datetime import datetime
 from bson import ObjectId
 # from caching import get_cache, set_cache, init_redis
-# from schedule import init_scheduler, worker_loop
+from schedule import init_scheduler
+# from schedule import worker_loop
 
 
 client = AsyncIOMotorClient(
@@ -20,7 +21,7 @@ db = client["prod"]
 @asynccontextmanager
 async def lifespan(app):
     # await init_redis()
-    # await init_scheduler()
+    await init_scheduler()
     await db.projects.create_index([("prj_name")], unique=False)
     yield
 
@@ -258,8 +259,8 @@ async def delete_all_user_data(phone_number: str):
 
     user_object_id = user["_id"]
     user_id_str = str(user["_id"])
-    print(f"user_id_str: {repr(user_id_str)}")
-    print(f"username: {repr(user["username"])}")
+    # print(f"user_id_str: {repr(user_id_str)}")
+    # print(f"username: {repr(user['username'])}")
 
     owned_orgs = await db.relationships.find(
         {
@@ -269,10 +270,10 @@ async def delete_all_user_data(phone_number: str):
             "role": "owner"
         }).to_list(length=None)
     
-    print(f"Type: {type(owned_orgs)}")
+    # print(f"Type: {type(owned_orgs)}")
     
     org_ids = [org["targetId"] for org in owned_orgs]
-    print(f"organization_ids: {org_ids}")
+    # print(f"organization_ids: {org_ids}")
     
 
     

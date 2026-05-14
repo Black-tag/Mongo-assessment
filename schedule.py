@@ -1,61 +1,63 @@
-# import asyncio
+import asyncio
 # from caching import get_client
-# from datetime import datetime, date, time
-# from zoneinfo import ZoneInfo
-# from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
-# import os
-# from dotenv import load_dotenv
+from datetime import datetime, date, time
+from zoneinfo import ZoneInfo
+from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
+import os
+from dotenv import load_dotenv
+from pathlib import Path
 
 
-# load_dotenv()
+load_dotenv()
 
 
-# SCHEDULE_HOUR = 16
-# SCHEDULE_MINUTE = 00
+SCHEDULE_HOUR = 16
+SCHEDULE_MINUTE = 00
 
 
-# async def init_scheduler():
+async def init_scheduler():
 
-#     ist = ZoneInfo("Asia/Kolkata")
-#     now = datetime.now(ist)
-#     run_at = now.replace(
-#         hour=SCHEDULE_HOUR, minute=SCHEDULE_MINUTE, second=0, microsecond=0
-#     )
-#     asyncio.create_task(worker_loop())
-#     await schedule_email("unnianandunni007@gmail.com", run_at)
-#     print(f"Email scheduled for {run_at} (timestamp: {run_at.timestamp()})")
-#     print(f"Current time: {datetime.now()} (timestamp: {datetime.now().timestamp()})")
-
-
-# conf = ConnectionConfig(
-#     MAIL_USERNAME="anand.a@digicollect.com",
-#     MAIL_PASSWORD=os.getenv("APP_PASSWORD"),
-#     MAIL_FROM="anand.a@digicollect.com",
-#     MAIL_PORT=587,
-#     MAIL_SERVER="smtp.gmail.com",
-#     MAIL_STARTTLS=True,
-#     MAIL_SSL_TLS=False,
-# )
+    # ist = ZoneInfo("Asia/Kolkata")
+    # now = datetime.now(ist)
+    # run_at = now.replace(
+    #     hour=SCHEDULE_HOUR, minute=SCHEDULE_MINUTE, second=0, microsecond=0
+    # )
+    # asyncio.create_task(worker_loop())
+    recipient = "unnianandunni007@gmail.com"
+    await send_email(recipient)
+    # await schedule_email("unnianandunni007@gmail.com", run_at)
+    # print(f"Email scheduled for {run_at} (timestamp: {run_at.timestamp()})")
+    # print(f"Current time: {datetime.now()} (timestamp: {datetime.now().timestamp()})")
 
 
-# async def send_email(email):
-#     message = MessageSchema(
-#         subject="UPDATE ON THE TASK: REDIS ASSIGNMENT",
-#         recipients=[email],
-#         # cc=["arjun.n@digicollect.com"],
-#         body = """
-# <p>Hi,</p>
-# <p>Please find the update on the tasks assigned today.</p>
-# <p><strong>1. Redis Cache for List and GET APIs</strong><br></p>
-# <p><strong>2. Redis Email Scheduler</strong><br>
-# A Redis-based email scheduler has been implemented which send this email at 4pm today</p>
-# <p>Regards,<br>Anand</p>
-# """,
-#         subtype="html",
-#     )
-#     fm = FastMail(conf)
-#     await fm.send_message(message)
-#     print(f"✓ Email sent to {email}")
+conf = ConnectionConfig(
+    MAIL_USERNAME="anand.a@digicollect.com",
+    MAIL_PASSWORD=os.getenv("APP_PASSWORD"),
+    MAIL_FROM="anand.a@digicollect.com",
+    MAIL_PORT=587,
+    MAIL_SERVER="smtp.gmail.com",
+    MAIL_STARTTLS=True,
+    MAIL_SSL_TLS=False,
+    TEMPLATE_FOLDER=Path(__file__).parent / "templates",
+)
+
+
+async def send_email(email):
+    message = MessageSchema(
+        subject="UPDATE ON THE TASK: REDIS ASSIGNMENT",
+        recipients=[email],
+        template_body= {
+            "username": "Anand",
+            "verification_link": "https://localhost:3000"
+        }, 
+        subtype=MessageType.html,
+    )
+    fm = FastMail(conf)
+    await fm.send_message(
+        message,
+        template_name = "welcome_email.html"
+        )
+    print(f"✓ Email sent to {email}")
 
 
 # async def worker_loop():
@@ -86,3 +88,5 @@
 #     client = await get_client()
 #     timestamp = run_at.timestamp()
 #     await client.zadd("email_queue", {email: timestamp})
+
+
